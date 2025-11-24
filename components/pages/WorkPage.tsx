@@ -89,7 +89,7 @@ export const WorkPage: React.FC = () => {
               <div className="flex items-end justify-between mt-auto">
                 <div className="flex flex-wrap gap-2">
                   {project.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="text-[10px] font-mono text-slate/50 bg-black/20 px-2 py-1 rounded">
+                    <span key={tag} className="text-[10px] font-mono text-slate/50 bg-black/20 px-2 py-1 rounded inline-block hover:scale-110 transition-transform duration-200">
                       {tag}
                     </span>
                   ))}

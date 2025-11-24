@@ -23,7 +23,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
         <div className="space-y-8 animate-fade-in-up">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors cursor-default">
             <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-            <span className="text-xs font-mono text-slate uppercase tracking-wider">Available for new systems</span>
+            <span className="text-xs font-mono text-slate uppercase tracking-wider">DEMONDOS COMING SOON</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold text-onyx leading-[1.1] tracking-tight">
@@ -33,7 +33,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
           </h1>
           
           <p className="text-lg md:text-xl text-slate font-light max-w-lg leading-relaxed">
-            I’m Jess. A system-minded, tech-forward creative professional building the bridge between rigid logic and fluid user experiences.
+            I’m Jess. A systems-minded, tech-forward creative exploring the edges of AI-supported thinking and design. My current work, demondOS, is an evolving ecosystem of tools, frameworks, and ideas built to reimagine how people learn, create, and interact with intelligent systems.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-4">

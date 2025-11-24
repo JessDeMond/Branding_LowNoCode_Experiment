@@ -6,6 +6,7 @@ import { Work } from './components/Work';
 import { Notes } from './components/Notes';
 import { Footer } from './components/Footer';
 import { WorkPage } from './components/pages/WorkPage';
+import { BackToTop } from './components/ui/BackToTop';
 import { ViewState } from './types';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
       </main>
       
       <Footer />
+      <BackToTop />
       
       {/* Global Background Noise/Grain */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.015] mix-blend-overlay z-[9999]" 

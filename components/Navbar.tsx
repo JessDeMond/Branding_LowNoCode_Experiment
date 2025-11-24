@@ -55,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
              <ArrowLeft size={20} className="text-teal animate-pulse" />
           )}
           <span className="font-sans font-bold text-xl tracking-tight text-onyx group-hover:text-teal transition-colors">
-            Jess DeMond<span className="text-teal">.</span>
+            Jess DeMond<span className="text-teal">.demondOS</span>
           </span>
         </button>
 
