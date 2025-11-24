@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PROJECTS } from '../../constants';
 import { GlassCard } from '../ui/GlassCard';
-import { SectionHeading } from '../ui/SectionHeading';
 import { ArrowUpRight, Filter } from 'lucide-react';
 import { DecryptText } from '../ui/DecryptText';
 
@@ -24,6 +23,11 @@ export const WorkPage: React.FC = () => {
 
   const categories = ['All', 'Engineering', 'Design', 'Strategy', 'Experiment'];
 
+  const getCategoryCount = (cat: string) => {
+    if (cat === 'All') return PROJECTS.length;
+    return PROJECTS.filter(p => p.category === cat).length;
+  };
+
   return (
     <div className="pt-32 pb-24 min-h-screen relative">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
@@ -45,20 +49,30 @@ export const WorkPage: React.FC = () => {
             <Filter size={18} />
             <span className="text-sm font-mono uppercase tracking-wider">Filter:</span>
           </div>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat as any)}
-              className={`
-                px-4 py-2 rounded-full text-sm font-mono transition-all duration-300 border
-                ${filter === cat 
-                  ? 'bg-teal/10 border-teal text-teal shadow-[0_0_15px_rgba(46,196,182,0.3)]' 
-                  : 'bg-white/5 border-white/5 text-slate hover:bg-white/10 hover:text-white'}
-              `}
-            >
-              {cat}
-            </button>
-          ))}
+          {categories.map((cat) => {
+            const count = getCategoryCount(cat);
+            const isDisabled = count === 0;
+
+            if (isDisabled) return null;
+
+            return (
+              <button
+                key={cat}
+                onClick={() => setFilter(cat as any)}
+                className={`
+                  px-4 py-2 rounded-full text-sm font-mono transition-all duration-300 border flex items-center gap-2
+                  ${filter === cat 
+                    ? 'bg-teal/10 border-teal text-teal shadow-[0_0_15px_rgba(46,196,182,0.3)]' 
+                    : 'bg-white/5 border-white/5 text-slate hover:bg-white/10 hover:text-white'}
+                `}
+              >
+                {cat}
+                <span className={`text-[10px] ${filter === cat ? 'text-teal/60' : 'text-slate/40'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Grid */}

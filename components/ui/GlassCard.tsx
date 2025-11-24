@@ -1,12 +1,12 @@
 import React from 'react';
 
-interface GlassCardProps {
+interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   hoverEffect?: boolean;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', hoverEffect = false }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', hoverEffect = false, ...props }) => {
   return (
     <div 
       className={`
@@ -19,6 +19,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', 
         ${hoverEffect ? 'hover:bg-white/[0.06] hover:border-teal/30 hover:-translate-y-1 hover:shadow-[0_10px_40px_-10px_rgba(46,196,182,0.2)]' : ''}
         ${className}
       `}
+      {...props}
     >
       {/* Subtle Noise Texture overlay could go here if using images, keeping it pure CSS for now */}
       {children}

@@ -1,8 +1,12 @@
 import React from 'react';
-import { Mail, Github, Linkedin, Twitter } from 'lucide-react';
+import { Mail, Github, Linkedin, Twitter, Terminal } from 'lucide-react';
 import { Button } from './ui/Button';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenTerminal?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenTerminal }) => {
   return (
     <footer id="contact" className="py-24 border-t border-white/5 bg-charcoal relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
@@ -34,6 +38,18 @@ export const Footer: React.FC = () => {
                    {social.icon}
                  </a>
                ))}
+               
+               {/* Terminal Trigger */}
+               <button
+                 onClick={onOpenTerminal}
+                 className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate hover:text-teal hover:border-teal/50 hover:bg-black/40 transition-all duration-300 group relative"
+                 aria-label="Open Terminal"
+               >
+                  <Terminal size={18} />
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-white/10">
+                    System Override (~)
+                  </span>
+               </button>
              </div>
           </div>
         </div>

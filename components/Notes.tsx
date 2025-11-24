@@ -2,22 +2,34 @@ import React from 'react';
 import { SectionHeading } from './ui/SectionHeading';
 import { NOTES } from '../constants';
 import { ArrowRight } from 'lucide-react';
+import { ViewState } from '../types';
 
-export const Notes: React.FC = () => {
+interface NotesProps {
+    onNavigate?: (view: ViewState) => void;
+}
+
+export const Notes: React.FC<NotesProps> = ({ onNavigate }) => {
+  // Show only first 3 notes
+  const recentNotes = NOTES.slice(0, 3);
+
   return (
     <section id="notes" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <SectionHeading title="Notes" subtitle="Thinking out loud about design and tech." />
-          <a href="#" className="text-teal hover:text-white transition-colors flex items-center gap-2 text-sm font-medium mb-12 md:mb-16">
-            View Archive <ArrowRight size={16} />
-          </a>
+          <button 
+            onClick={() => onNavigate && onNavigate('notes')}
+            className="text-teal hover:text-white transition-colors flex items-center gap-2 text-sm font-medium mb-12 md:mb-16 group"
+          >
+            View Archive <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
 
         <div className="space-y-4">
-          {NOTES.map((note) => (
+          {recentNotes.map((note) => (
             <div 
               key={note.id}
+              onClick={() => onNavigate && onNavigate('notes')}
               className="group relative block p-6 md:p-8 rounded-xl border border-transparent border-b-white/5 hover:border-teal/10 hover:bg-white/[0.04] hover:shadow-[0_0_30px_-10px_rgba(46,196,182,0.15)] transition-all duration-500 ease-out cursor-pointer"
             >
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-baseline">

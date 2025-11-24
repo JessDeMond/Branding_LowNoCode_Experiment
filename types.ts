@@ -13,6 +13,10 @@ export interface Note {
   title: string;
   date: string;
   summary: string;
+  content?: string;
+  readTime?: string;
+  tags?: string[];
+  category?: 'Design' | 'Tech' | 'Systems' | 'Personal';
 }
 
 export interface NavItem {
@@ -20,4 +24,4 @@ export interface NavItem {
   href: string;
 }
 
-export type ViewState = 'home' | 'work';
+export type ViewState = 'home' | 'work' | 'notes';

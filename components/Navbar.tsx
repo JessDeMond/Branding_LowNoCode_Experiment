@@ -23,8 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const handleNavClick = (href: string) => {
     setIsMobileOpen(false);
     
-    // If we are on the work page, we need to go home first
-    if (currentView === 'work') {
+    // If we are not on home, go home first
+    if (currentView !== 'home') {
       onNavigate('home');
       // Use setTimeout to allow render to happen before scrolling
       setTimeout(() => {
@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           onClick={() => handleNavClick('#home')}
           className="group flex items-center gap-2"
         >
-          {currentView === 'work' && (
+          {currentView !== 'home' && (
              <ArrowLeft size={20} className="text-teal animate-pulse" />
           )}
           <span className="font-sans font-bold text-xl tracking-tight text-onyx group-hover:text-teal transition-colors">
@@ -125,6 +125,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             className="text-lg font-mono text-teal text-left"
           >
             View Full Archive
+          </button>
+          <button 
+            onClick={() => {
+                onNavigate('notes');
+                setIsMobileOpen(false);
+            }}
+            className="text-lg font-mono text-teal text-left"
+          >
+            View Notes
           </button>
         </div>
       )}
