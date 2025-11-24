@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Minimize2, Terminal as TerminalIcon, Cpu, ShieldCheck, Wifi, Activity } from 'lucide-react';
-import { PROJECTS } from '../../constants';
+import { X, Minimize2, Terminal as TerminalIcon, Activity } from 'lucide-react';
+import { PROJECTS, NOTES } from '../../constants';
 import { GoogleGenAI } from "@google/genai";
 
 interface TerminalProps {
@@ -9,7 +9,7 @@ interface TerminalProps {
 }
 
 type TerminalMode = 'standard' | 'snake' | 'matrix';
-type CommandHandler = (args: string[]) => string | React.ReactElement | void;
+type CommandHandler = (args: string[]) => string | React.ReactElement | void | Promise<string | void>;
 
 interface TerminalLine {
     id: string;
@@ -25,7 +25,64 @@ const THEMES: Record<string, string> = {
   slate: '#9BA3AF'
 };
 
-// --- SUB-COMPONENTS ---
+// --- VISUAL COMPONENTS ---
+
+const CRTEffect: React.FC = () => (
+    <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-lg select-none">
+        {/* Scanlines */}
+        <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+                background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+                backgroundSize: '100% 2px, 3px 100%'
+            }}
+        />
+        {/* Subtle Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
+        {/* Flicker Animation (Simulated via opacity pulse) */}
+        <div className="absolute inset-0 bg-white/5 opacity-[0.02] animate-pulse" />
+    </div>
+);
+
+const BootSequence: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+    const [lines, setLines] = useState<string[]>([]);
+    
+    const sequence = [
+        "BIOS DATE 01/01/2025 14:22:51 VER 1.0.2",
+        "CPU: QUANTUM NEURAL CORE @ 45.2 THz",
+        "Checking Memory... 1048576K OK",
+        "Detecting Primary Master ... demondOS_DRIVE",
+        "Booting from Primary Master...",
+        "Loading Kernel...",
+        "Mounting File System...",
+        "Initializing Neural Uplink...",
+        "demondOS v2.5.0 Ready."
+    ];
+
+    useEffect(() => {
+        let index = 0;
+        const interval = setInterval(() => {
+            if (index >= sequence.length) {
+                clearInterval(interval);
+                setTimeout(onComplete, 800);
+            } else {
+                setLines(prev => [...prev, sequence[index]]);
+                index++;
+            }
+        }, 150 + Math.random() * 200); // Random typing speed
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="font-mono text-xs text-slate-300 p-4 space-y-1">
+            {lines.map((line, i) => (
+                <div key={i}>{line}</div>
+            ))}
+            <div className="animate-pulse">_</div>
+        </div>
+    );
+};
 
 const SystemScan: React.FC<{ color: string, onComplete: () => void }> = ({ color, onComplete }) => {
     const [steps, setSteps] = useState<{msg: string, status: 'pending' | 'done' | 'active'}[]>([
@@ -46,13 +103,10 @@ const SystemScan: React.FC<{ color: string, onComplete: () => void }> = ({ color
                 return;
             }
 
-            // Mark current as active
             setSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'active' } : s));
 
-            // Fake processing time
-            const duration = Math.random() * 800 + 400;
+            const duration = Math.random() * 600 + 300;
             
-            // Progress bar animation for this step
             let p = 0;
             const interval = setInterval(() => {
                 p += 5;
@@ -62,11 +116,10 @@ const SystemScan: React.FC<{ color: string, onComplete: () => void }> = ({ color
 
             setTimeout(() => {
                 clearInterval(interval);
-                // Mark current as done
                 setSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'done' } : s));
                 currentStep++;
                 setProgress(0);
-                setTimeout(runStep, 200); // Pause between steps
+                setTimeout(runStep, 100);
             }, duration);
         };
 
@@ -74,13 +127,16 @@ const SystemScan: React.FC<{ color: string, onComplete: () => void }> = ({ color
     }, []);
 
     return (
-        <div className="my-4 border border-white/10 rounded p-4 bg-black/20 font-mono text-xs">
+        <div className="my-4 border border-white/10 rounded p-4 bg-black/20 font-mono text-xs relative overflow-hidden">
+             {/* Scanline for the card specifically */}
+             <div className="absolute inset-0 bg-white/5 h-[1px] w-full animate-[ping_3s_linear_infinite]" style={{ top: `${progress}%` }} />
+             
             <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                 <Activity size={14} style={{ color }} className="animate-pulse" />
                 <span className="text-white font-bold tracking-wider">SYSTEM DIAGNOSTIC TOOL v2.1</span>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-3 relative z-10">
                 {steps.map((step, i) => (
                     <div key={i} className={`flex items-center gap-3 ${step.status === 'pending' ? 'opacity-30' : 'opacity-100'}`}>
                         <div className={`w-3 h-3 rounded-full flex items-center justify-center border ${step.status === 'done' ? 'border-transparent' : 'border-white/20'}`} style={{ backgroundColor: step.status === 'done' ? color : 'transparent' }}>
@@ -124,7 +180,7 @@ const MatrixRain: React.FC<{ color: string }> = ({ color }) => {
         const chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
 
         const draw = () => {
-            ctx.fillStyle = 'rgba(15, 15, 16, 0.1)'; // Fade effect
+            ctx.fillStyle = 'rgba(15, 15, 16, 0.1)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = color;
@@ -149,7 +205,7 @@ const MatrixRain: React.FC<{ color: string }> = ({ color }) => {
 };
 
 
-// --- MAIN COMPONENT ---
+// --- MAIN TERMINAL COMPONENT ---
 
 export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
   const [input, setInput] = useState('');
@@ -158,6 +214,7 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
       { id: 'init-2', content: 'Type "help" for available commands.' }
   ]);
   const [mode, setMode] = useState<TerminalMode>('standard');
+  const [bootState, setBootState] = useState<'off' | 'booting' | 'on'>('off');
   const [themeColor, setThemeColor] = useState(THEMES.teal);
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -172,67 +229,104 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const GRID_SIZE = 20;
 
-  // Auto-scroll to bottom
+  // --- EFFECTS ---
+
+  // Handle Boot
+  useEffect(() => {
+    if (isOpen && bootState === 'off') {
+        setBootState('booting');
+    }
+  }, [isOpen]);
+
+  // Auto-scroll
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [history, mode]);
+  }, [history, mode, bootState]);
 
-  // Focus input when opened
+  // Focus input
   useEffect(() => {
-    if (isOpen && mode === 'standard') {
+    if (isOpen && bootState === 'on' && mode === 'standard') {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, mode]);
+  }, [isOpen, bootState, mode]);
 
-  // --- HELPER: ADD LINE ---
   const addLine = (content: React.ReactNode) => {
       setHistory(prev => [...prev, { id: Date.now().toString() + Math.random(), content }]);
   };
 
-  // --- AI LOGIC ---
-  const processAICommand = async (prompt: string, mode: 'chat' | 'roast' | 'analyze' | 'fortune' = 'chat', context?: string) => {
-    const loadingId = 'loading-' + Date.now();
+  // --- GEMINI INTELLIGENCE ---
+
+  const streamAIResponse = async (prompt: string, modeType: 'chat' | 'roast' | 'analyze' | 'fortune' | 'ascii' = 'chat', context?: string) => {
+    const responseId = 'ai-' + Date.now();
     
-    // Add loading indicator
+    // Initial placeholder
     setHistory(prev => [...prev, { 
-        id: loadingId, 
-        content: <div className="text-teal/50 animate-pulse font-mono text-xs">...establishing neural uplink...</div> 
+        id: responseId, 
+        content: <span className="animate-pulse">_</span> 
     }]);
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        
         let modelName = 'gemini-2.5-flash';
         let sysPrompt = "You are demondOS, a CLI-based personal operating system for Jess DeMond. You are helpful, slightly witty, and concise. Format output as raw text. Do not use markdown code blocks.";
-        
-        if (mode === 'roast') {
-            sysPrompt += " You are in 'Security Kernel' mode. Roast the user gently for being a guest or for their input. Be funny, tech-savvy, and sarcastic.";
-        } else if (mode === 'analyze') {
-             // Use Pro for complex reasoning tasks
-             modelName = 'gemini-3-pro-preview';
-             sysPrompt += " You are in 'Architect Mode'. Analyze the provided project data technically. Highlight potential scalability issues, stack choices, or future optimizations. Be professional but critical. Keep it under 150 words.";
-        } else if (mode === 'fortune') {
-            sysPrompt += " You are a digital oracle inside a computer system. Provide a cryptic, philosophical, or witty fortune cookie quote about technology, entropy, or the future. Keep it short (max 1 sentence).";
+
+        if (modeType === 'roast') {
+            sysPrompt += " You are in 'Security Kernel' mode. Roast the user gently. Be sarcastic but funny.";
+        } else if (modeType === 'analyze') {
+             modelName = 'gemini-3-pro-preview'; // More brainpower for analysis
+             sysPrompt += " You are in 'Architect Mode'. Analyze the provided project data. Be professional, critical, and highlight stack choices. Keep it structured.";
+        } else if (modeType === 'fortune') {
+            sysPrompt += " You are a digital oracle. Provide a cryptic, philosophical fortune about entropy and code. Max 1 sentence.";
+        } else if (modeType === 'ascii') {
+            sysPrompt = "You are an ASCII art generator. Generate ASCII art for the prompt. Max width 60 chars. Return ONLY raw ASCII text. No markdown fences.";
         }
 
         const fullPrompt = context ? `Context: ${context}\n\nUser Query: ${prompt}` : prompt;
 
-        const response = await ai.models.generateContent({
+        // Use streaming for that "hacker terminal" feel
+        const result = await ai.models.generateContentStream({
             model: modelName,
             contents: fullPrompt,
             config: { systemInstruction: sysPrompt }
         });
-        
-        const text = response.text || "No response received from the neural core.";
 
-        // Replace loading with content
+        let accumulatedText = "";
+
+        for await (const chunk of result) {
+            const chunkText = chunk.text;
+            if (chunkText) {
+                accumulatedText += chunkText;
+                
+                // Update the specific history line
+                setHistory(prev => prev.map(line => {
+                    if (line.id === responseId) {
+                        return {
+                            id: line.id,
+                            content: (
+                                <div className={`whitespace-pre-wrap font-mono leading-relaxed ${modeType === 'roast' ? 'text-red-400' : modeType === 'fortune' ? 'text-gold italic' : modeType === 'ascii' ? 'text-xs leading-[1.1] text-teal' : 'text-slate-300'}`}>
+                                    {accumulatedText}
+                                    <span className="animate-pulse inline-block w-2 h-4 bg-teal/50 ml-1 align-middle"></span>
+                                </div>
+                            )
+                        };
+                    }
+                    return line;
+                }));
+            }
+        }
+
+        // Finalize (remove cursor)
         setHistory(prev => prev.map(line => {
-            if (line.id === loadingId) {
+            if (line.id === responseId) {
                 return {
                     id: line.id,
-                    content: <div className={`whitespace-pre-wrap mb-2 animate-fade-in ${mode === 'roast' ? 'text-red-400' : mode === 'fortune' ? 'text-gold italic' : 'text-slate-300'}`}>{text}</div>
+                    content: (
+                        <div className={`whitespace-pre-wrap font-mono leading-relaxed ${modeType === 'roast' ? 'text-red-400' : modeType === 'fortune' ? 'text-gold italic' : modeType === 'ascii' ? 'text-xs leading-[1.1] text-teal' : 'text-slate-300'}`}>
+                            {accumulatedText}
+                        </div>
+                    )
                 };
             }
             return line;
@@ -240,181 +334,221 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
 
     } catch (e) {
         setHistory(prev => prev.map(line => {
-            if (line.id === loadingId) {
-                return {
-                    id: line.id,
-                    content: <div className="text-red-400">Error: Neural link severed. (Check API Key or Connectivity)</div>
-                };
+            if (line.id === responseId) {
+                return { id: line.id, content: <span className="text-red-500">Error: Neural Uplink Failed.</span> };
             }
             return line;
         }));
     }
   };
 
+  // --- COMMANDS ---
 
-  // --- COMMAND LOGIC ---
   const commands: Record<string, CommandHandler> = {
     help: () => (
       <div className="space-y-1 text-slate">
-        <p>Available commands:</p>
-        <ul className="pl-4 list-disc" style={{ color: themeColor }}>
-          <li><span className="text-white font-bold">ai [query]</span> - Ask demondOS a question</li>
-          <li><span className="text-white font-bold">analyze [id]</span> - Technical breakdown of a project</li>
-          <li><span className="text-white font-bold">roast</span> - System critique of user</li>
-          <li><span className="text-white font-bold">fortune</span> - Consult the system oracle</li>
-          <li><span className="text-white font-bold">about</span> - System information</li>
-          <li><span className="text-white font-bold">projects</span> - List archive entries</li>
-          <li><span className="text-white font-bold">scan</span> - Run system diagnostics</li>
-          <li><span className="text-white font-bold">theme [color]</span> - Change accent (teal, gold, violet, matrix, danger)</li>
-          <li><span className="text-white font-bold">snake</span> - Launch entertainment module</li>
-          <li><span className="text-white font-bold">matrix</span> - Toggle visualizer</li>
-          <li><span className="text-white font-bold">clear</span> - Clear terminal output</li>
-        </ul>
+        <p className="border-b border-white/10 pb-2 mb-2">AVAILABLE MODULES v2.5:</p>
+        <div className="grid grid-cols-2 gap-4">
+            <ul className="list-none space-y-1">
+                <li><span style={{ color: themeColor }}>ai [query]</span> :: Ask demondOS</li>
+                <li><span style={{ color: themeColor }}>draw [txt]</span> :: Generate ASCII art</li>
+                <li><span style={{ color: themeColor }}>analyze [id]</span> :: Project critique</li>
+                <li><span style={{ color: themeColor }}>roast</span> :: System banter</li>
+                <li><span style={{ color: themeColor }}>fortune</span> :: Oracle query</li>
+            </ul>
+            <ul className="list-none space-y-1">
+                <li><span style={{ color: themeColor }}>ls</span> :: List directories</li>
+                <li><span style={{ color: themeColor }}>cat [file]</span> :: Read content</li>
+                <li><span style={{ color: themeColor }}>scan</span> :: Diagnostics</li>
+                <li><span style={{ color: themeColor }}>theme [val]</span> :: UI color shift</li>
+                <li><span style={{ color: themeColor }}>snake</span> :: Launch Game</li>
+                <li><span style={{ color: themeColor }}>reboot</span> :: Restart system</li>
+            </ul>
+        </div>
       </div>
     ),
-    about: () => "demondOS is a personal operating system/brand interface designed by Jess DeMond. Built on React 19.",
-    whoami: () => "User: Guest // Access Level: Read-Only",
+    ls: () => (
+        <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="text-blue-400 font-bold">projects/</div>
+            <div className="text-blue-400 font-bold">notes/</div>
+            <div className="text-slate-500">system_log.txt</div>
+            <div className="text-slate-500">readme.md</div>
+        </div>
+    ),
+    cat: (args) => {
+        if (!args.length) return "Usage: cat [filename]";
+        const path = args[0];
+        
+        if (path === 'projects' || path === 'projects/') return "Is a directory.";
+
+        if (path.startsWith('projects/')) {
+            const filename = path.replace('projects/', '');
+            if (filename === '' || filename === '*') {
+                return (
+                   <div className="text-xs text-slate-400 whitespace-pre-wrap">
+                       {JSON.stringify(PROJECTS.map(p => ({file: `${p.id}.json`, title: p.title})), null, 2)}
+                   </div>
+               )
+            }
+
+            const projectById = PROJECTS.find(p => p.id === filename || p.id === filename.replace('.json', ''));
+            if (projectById) {
+                return (
+                    <div className="text-xs text-slate-400 whitespace-pre-wrap">
+                        {JSON.stringify(projectById, null, 2)}
+                    </div>
+                )
+            }
+             return `cat: projects/${filename}: No such file or directory`;
+        }
+
+        if (path.startsWith('notes/')) {
+            const filename = path.replace('notes/', '');
+            if (filename === '' || filename === '*') {
+                 return (
+                    <div className="text-xs text-slate-400 whitespace-pre-wrap">
+                        {JSON.stringify(NOTES.map(n => ({file: `${n.id}.md`, title: n.title})), null, 2)}
+                    </div>
+                )
+            }
+            const note = NOTES.find(n => n.id === filename || n.id === filename.replace('.md', ''));
+            if (note) {
+                 return (
+                     <div className="text-xs text-slate-400 whitespace-pre-wrap">
+                         {`# ${note.title}\nDate: ${note.date}\n\n${note.summary}\n\n${note.content || '(No content)'}`}
+                     </div>
+                 )
+             }
+             return `cat: notes/${filename}: No such file or directory`;
+        }
+
+        if (path === 'readme.md') return "demondOS: A react-based CLI for personal branding.";
+        if (path === 'system_log.txt') return "Log: System boot successful. User session active.";
+        
+        return `cat: ${path}: No such file or directory`;
+    },
+    draw: (args) => {
+        const prompt = args.join(' ');
+        if (!prompt) return "Usage: draw <prompt>";
+        streamAIResponse(prompt, 'ascii');
+    },
+    reboot: () => {
+        setHistory([]);
+        setBootState('booting');
+        return; 
+    },
+    sudo: () => {
+        return (
+            <div>
+                <span className="text-slate">Password for guest: </span>
+                <span className="text-red-500 font-bold ml-2">********</span>
+                <div className="text-red-400 mt-1">ACCESS DENIED. This incident will be reported.</div>
+            </div>
+        );
+    },
     projects: () => (
         <div className="grid grid-cols-1 gap-1">
             {PROJECTS.slice(0, 5).map(p => (
-                <div key={p.id} className="flex gap-4">
-                    <span style={{ color: themeColor }} className="min-w-[30px]">{p.id}</span>
-                    <span className="text-slate">{p.title}</span>
+                <div key={p.id} className="flex gap-4 group hover:bg-white/5 p-1 rounded transition-colors cursor-pointer" onClick={() => handleCommand(`analyze ${p.id}`)}>
+                    <span style={{ color: themeColor }}>➜</span> <span className="min-w-[30px] font-bold">{p.id}</span>
+                    <span className="text-slate group-hover:text-white">{p.title}</span>
                 </div>
             ))}
-            <div className="text-slate/50 italic mt-1">... type 'analyze [id]' for details.</div>
+            <div className="text-slate/50 italic mt-1 text-xs">... type 'analyze [id]' for full schematic.</div>
         </div>
     ),
-    clear: () => {
-      setHistory([]);
-    },
-    exit: () => {
-      onClose();
-      return 'Session closed.';
-    },
-    snake: () => {
-      startSnakeGame();
-      return 'Initializing graphical interface...';
-    },
-    scan: () => {
-        return <SystemScan color={themeColor} onComplete={() => addLine("Diagnostic Complete.")} />;
-    },
-    matrix: () => {
-        setMode('matrix');
-        return "Entering the void... (Press ESC to return)";
-    },
+    clear: () => { setHistory([]); },
+    exit: () => { onClose(); return 'Session closed.'; },
+    snake: () => { startSnakeGame(); return 'Initializing graphical interface...'; },
+    scan: () => { return <SystemScan color={themeColor} onComplete={() => addLine("Diagnostic Complete.")} />; },
+    matrix: () => { setMode('matrix'); return "Entering the void... (Press ESC to return)"; },
     theme: (args) => {
         const colorName = args[0]?.toLowerCase();
         if (THEMES[colorName]) {
             setThemeColor(THEMES[colorName]);
             return `Theme updated to: ${colorName}`;
         }
-        return `Unknown theme. Available: ${Object.keys(THEMES).join(', ')}`;
+        return `Available themes: ${Object.keys(THEMES).join(', ')}`;
     },
-    fortune: () => {
-        processAICommand("Generate fortune.", 'fortune');
-    },
-    sudo: () => {
-        return <span className="text-red-400 font-bold">ACCESS DENIED: You are not in the sudoers file. This incident will be reported.</span>;
-    },
+    fortune: () => { streamAIResponse("Generate fortune.", 'fortune'); },
     ai: (args) => {
         const prompt = args.join(' ');
         if (!prompt) return "Usage: ai <prompt>";
-        processAICommand(prompt, 'chat');
+        streamAIResponse(prompt, 'chat');
     },
     roast: (args) => {
         const prompt = args.join(' ') || "Roast me for being a guest user.";
-        processAICommand(prompt, 'roast');
+        streamAIResponse(prompt, 'roast');
     },
     analyze: (args) => {
-        if (args.length === 0) return "Usage: analyze <project_id> (e.g., analyze 1)";
+        if (args.length === 0) return "Usage: analyze <project_id>";
         const id = args[0];
         const project = PROJECTS.find(p => p.id === id);
-        if (!project) return `Error: Project ID ${id} not found in memory blocks.`;
+        if (!project) return `Error: Project ID ${id} not found.`;
         
         const context = `Project: ${project.title}\nDescription: ${project.description}\nTags: ${project.tags.join(', ')}\nCategory: ${project.category}`;
-        processAICommand("Analyze this project technically.", 'analyze', context);
+        streamAIResponse("Analyze this project architectural choices.", 'analyze', context);
     }
   };
 
-  const handleCommand = (cmdStr: string) => {
+  const handleCommand = async (cmdStr: string) => {
     const trimmed = cmdStr.trim();
     if (!trimmed) return;
-
     const [cmd, ...args] = trimmed.split(' ');
     
-    // Add command to history
-    const commandLine = {
+    setHistory(prev => [...prev, {
         id: 'cmd-' + Date.now(),
         content: <div className="flex gap-2"><span style={{ color: themeColor }}>➜</span> <span className="text-white">{trimmed}</span></div>
-    };
-    
-    // We update history with the command line immediately
-    setHistory(prev => {
-        const next = [...prev, commandLine];
-        return next;
-    });
+    }]);
 
-    // Process command
     if (commands[cmd.toLowerCase()]) {
       const output = commands[cmd.toLowerCase()](args);
-      if (output) {
-          // If the command returned immediate output (string or element), add it
-          setTimeout(() => {
-              addLine(output);
-          }, 10);
+      
+      if (output instanceof Promise) {
+          const resolved = await output;
+          if (resolved) {
+              setTimeout(() => addLine(resolved), 10);
+          }
+      } else if (output) {
+         // Use timeout to allow React to render the command line first
+         setTimeout(() => addLine(output), 10);
       }
     } else {
-      setTimeout(() => {
-          addLine(`Command not found: ${cmd}. Type "help" for assistance.`);
-      }, 10);
-    }
-
-    if (cmd.toLowerCase() === 'clear') {
-        // Handled by state set in command function
+      setTimeout(() => addLine(`Command not found: ${cmd}. Type "help".`), 10);
     }
     
+    if (cmd.toLowerCase() !== 'clear') {
+       // Keep clear synchronous visually
+    }
     setInput('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleCommand(input);
-    }
+    if (e.key === 'Enter') handleCommand(input);
   };
 
-  // --- GAME LOGIC ---
+  // --- GAME LOGIC (Snake) ---
   const startSnakeGame = () => {
     setMode('snake');
     setSnake([{x: 10, y: 10}]);
     setScore(0);
     setDirection({x: 1, y: 0});
-    setFood({
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE)
-    });
+    setFood({ x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) });
   };
-
   const stopGame = () => {
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     setMode('standard');
     addLine(`Game Over. Score: ${score}`);
   };
-  
-  const stopMatrix = () => {
-      setMode('standard');
-  }
 
-  // Handle global keys for modes (Escape)
   useEffect(() => {
     const handleGlobalKeys = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
             if (mode === 'snake') stopGame();
-            if (mode === 'matrix') stopMatrix();
+            if (mode === 'matrix') setMode('standard');
         }
     };
     
-    // Game Controls
     const handleGameInput = (e: KeyboardEvent) => {
         if (mode !== 'snake') return;
         switch(e.key) {
@@ -432,39 +566,17 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
         gameLoopRef.current = setInterval(() => {
             setSnake(prev => {
                 const head = prev[prev.length - 1];
-                const newHead = {
-                    x: (head.x + direction.x + GRID_SIZE) % GRID_SIZE,
-                    y: (head.y + direction.y + GRID_SIZE) % GRID_SIZE
-                };
-
-                // Self collision check
-                if (prev.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
-                    stopGame();
-                    return prev;
-                }
-
+                const newHead = { x: (head.x + direction.x + GRID_SIZE) % GRID_SIZE, y: (head.y + direction.y + GRID_SIZE) % GRID_SIZE };
+                if (prev.some(s => s.x === newHead.x && s.y === newHead.y)) { stopGame(); return prev; }
                 const newSnake = [...prev, newHead];
-                
-                // Food check
                 if (newHead.x === food.x && newHead.y === food.y) {
-                    setScore(s => {
-                        const newScore = s + 10;
-                        if (newScore > highScore) setHighScore(newScore);
-                        return newScore;
-                    });
-                    setFood({
-                        x: Math.floor(Math.random() * GRID_SIZE),
-                        y: Math.floor(Math.random() * GRID_SIZE)
-                    });
-                } else {
-                    newSnake.shift(); // Remove tail
-                }
-
+                    setScore(s => { const ns = s + 10; if (ns > highScore) setHighScore(ns); return ns; });
+                    setFood({ x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) });
+                } else { newSnake.shift(); }
                 return newSnake;
             });
         }, 150);
     }
-
     return () => {
         window.removeEventListener('keydown', handleGlobalKeys);
         window.removeEventListener('keydown', handleGameInput);
@@ -475,68 +587,81 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
       <div 
-        className="w-full max-w-2xl bg-charcoal/95 border rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col font-mono text-sm h-[500px] animate-fade-in-up transition-colors duration-500"
-        style={{ borderColor: `${themeColor}40`, boxShadow: `0 0 30px ${themeColor}20` }}
+        className="w-full max-w-3xl bg-[#0a0a0a] border rounded-lg shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col font-mono text-sm h-[600px] animate-fade-in-up transition-colors duration-500 relative"
+        style={{ borderColor: `${themeColor}40`, boxShadow: `0 0 40px ${themeColor}10` }}
       >
-        
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5 select-none relative z-10">
-            <div className="flex items-center gap-2 text-slate">
+        <CRTEffect />
+
+        {/* Terminal Header */}
+        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5 select-none relative z-50">
+            <div className="flex items-center gap-2 text-slate-400">
                 <TerminalIcon size={14} style={{ color: themeColor }} />
-                <span>demondOS_terminal_client</span>
+                <span className="text-xs tracking-wider">demondOS_v2.5 // ROOT</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
                 <button onClick={onClose} className="hover:text-white transition-colors"><Minimize2 size={14} /></button>
                 <button onClick={onClose} className="hover:text-red-400 transition-colors"><X size={14} /></button>
             </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-grow p-4 overflow-y-auto custom-scrollbar relative" onClick={() => mode === 'standard' && inputRef.current?.focus()}>
+        <div 
+            className="flex-grow p-6 overflow-y-auto custom-scrollbar relative z-40" 
+            onClick={() => bootState === 'on' && mode === 'standard' && inputRef.current?.focus()}
+            style={{ textShadow: `0 0 5px ${themeColor}40` }} // Text glow
+        >
             
-            {/* Matrix Background Overlay */}
+            {/* Matrix Background */}
             {mode === 'matrix' && <MatrixRain color={themeColor} />}
 
-            {mode === 'standard' && (
+            {/* Boot Sequence */}
+            {bootState === 'booting' && (
+                <BootSequence onComplete={() => setBootState('on')} />
+            )}
+
+            {/* Standard Terminal */}
+            {bootState === 'on' && mode === 'standard' && (
                 <>
                     {history.map((line) => (
-                        <div key={line.id} className="mb-1 text-slate-300 break-words leading-relaxed">
+                        <div key={line.id} className="mb-2 break-words leading-relaxed text-slate-300">
                             {line.content}
                         </div>
                     ))}
                     
-                    <div className="flex gap-2 mt-2">
-                        <span className="font-bold" style={{ color: themeColor }}>➜</span>
+                    <div className="flex gap-3 mt-4 items-center">
+                        <span className="font-bold text-lg select-none" style={{ color: themeColor }}>➜</span>
+                        <span className="text-xs text-slate-500 select-none">~</span>
                         <input
                             ref={inputRef}
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            className="bg-transparent border-none outline-none text-white w-full"
+                            className="bg-transparent border-none outline-none text-white w-full font-mono text-sm"
                             style={{ caretColor: themeColor }}
                             autoFocus
+                            spellCheck={false}
+                            autoComplete="off"
                         />
                     </div>
                 </>
             )}
 
-            {mode === 'snake' && (
+            {/* Snake Game */}
+            {bootState === 'on' && mode === 'snake' && (
                 <div className="flex flex-col items-center justify-center h-full relative z-10">
                     <div className="mb-4 text-center">
-                        <p className="font-bold text-lg" style={{ color: themeColor }}>SNAKE.EXE</p>
-                        <p className="text-slate text-xs">Score: {score} | High: {highScore}</p>
-                        <p className="text-slate/40 text-[10px] mt-1">Use Arrows to Move | ESC to Quit</p>
+                        <p className="font-bold text-lg tracking-[0.2em]" style={{ color: themeColor }}>SNAKE.EXE</p>
+                        <p className="text-slate text-xs mt-2">SCORE: {score} <span className="mx-2 text-slate/20">|</span> HIGH: {highScore}</p>
                     </div>
                     
-                    {/* Game Grid */}
                     <div 
-                        className="relative bg-black/40 border border-white/10"
+                        className="relative bg-black/40 border border-white/10 shadow-2xl"
                         style={{
-                            width: '300px',
-                            height: '300px',
+                            width: '320px',
+                            height: '320px',
                             display: 'grid',
                             gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
                             gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`
@@ -548,33 +673,33 @@ export const Terminal: React.FC<TerminalProps> = ({ isOpen, onClose }) => {
                                 className="absolute transition-all duration-75"
                                 style={{
                                     backgroundColor: themeColor,
-                                    width: `${100/GRID_SIZE}%`,
-                                    height: `${100/GRID_SIZE}%`,
-                                    left: `${(segment.x / GRID_SIZE) * 100}%`,
-                                    top: `${(segment.y / GRID_SIZE) * 100}%`,
+                                    width: `${100/GRID_SIZE - 2}%`,
+                                    height: `${100/GRID_SIZE - 2}%`,
+                                    left: `${(segment.x / GRID_SIZE) * 100 + 1}%`,
+                                    top: `${(segment.y / GRID_SIZE) * 100 + 1}%`,
                                     opacity: i === snake.length - 1 ? 1 : 0.6,
-                                    borderRadius: '2px'
+                                    boxShadow: i === snake.length - 1 ? `0 0 10px ${themeColor}` : 'none'
                                 }}
                             />
                         ))}
                         <div 
-                            className="absolute bg-white animate-pulse"
+                            className="absolute bg-white animate-pulse rounded-full"
                             style={{
-                                width: `${100/GRID_SIZE}%`,
-                                height: `${100/GRID_SIZE}%`,
-                                left: `${(food.x / GRID_SIZE) * 100}%`,
-                                top: `${(food.y / GRID_SIZE) * 100}%`,
-                                borderRadius: '50%'
+                                width: `${100/GRID_SIZE - 5}%`,
+                                height: `${100/GRID_SIZE - 5}%`,
+                                left: `${(food.x / GRID_SIZE) * 100 + 2.5}%`,
+                                top: `${(food.y / GRID_SIZE) * 100 + 2.5}%`,
                             }}
                         />
                     </div>
+                    <p className="text-slate/30 text-[10px] mt-6 uppercase tracking-widest">Press ESC to abort mission</p>
                 </div>
             )}
 
             {mode === 'matrix' && (
-                 <div className="absolute bottom-4 left-0 w-full text-center z-20">
+                 <div className="absolute bottom-6 left-0 w-full text-center z-20">
                      <div className="inline-block bg-black/80 px-4 py-2 rounded border border-white/10 text-white text-xs backdrop-blur-md">
-                        Press <span className="font-bold text-white">ESC</span> to return to terminal
+                        PRESS <span className="font-bold text-white">ESC</span> TO DISENGAGE
                      </div>
                  </div>
             )}
